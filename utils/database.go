@@ -9,6 +9,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	model "basictrade/models"
+
 )
 
 var (
@@ -28,6 +29,10 @@ func StartDB() {
 	dbport := os.Getenv("DB_PORT")
 	dbname := os.Getenv("DB_NAME")
 
+	if host == "" || user == "" || password == "" || dbport == "" || dbname == "" {
+		log.Fatal("Incomplete database configuration. Please check your environment variables.")
+	}	
+
 	// "user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
 	config := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, password, host, dbport, dbname)
 	db, err = gorm.Open(mysql.Open(config), &gorm.Config{})
@@ -36,9 +41,11 @@ func StartDB() {
 	}
 
 	// AutoMigrate models
-	db.AutoMigrate(&model.Admin{})
-	db.AutoMigrate(&model.Product{})
-	db.AutoMigrate(&model.Variant{})
+	db.Debug().AutoMigrate(
+		&model.Admin{}, 
+		&model.Product{}, 
+		&model.Variant{},
+	)
 
 	fmt.Println("Connected to the database")
 }

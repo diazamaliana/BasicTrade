@@ -10,9 +10,9 @@ import (
 func StartApp() *gin.Engine {
 	router := gin.Default()
 
-	// Middleware
-	router.Use(middleware.ValidateMiddleware())
-	router.Use(middleware.AuthMiddleware())
+	// // Middleware
+	// router.Use(middleware.ValidateMiddleware())
+	// router.Use(middleware.AuthMiddleware())
 
 	// Auth routes
 	auth := router.Group("/auth")
@@ -24,6 +24,10 @@ func StartApp() *gin.Engine {
 	// Product routes
 	product := router.Group("/products")
 	{
+		// Middleware
+		// router.Use(middleware.ValidateMiddleware())
+		router.Use(middleware.AuthMiddleware())
+
 		product.GET("", controllers.GetAllProducts)
 		product.POST("", controllers.CreateProduct)
 		product.PUT("/:productUUID", controllers.UpdateProduct)
