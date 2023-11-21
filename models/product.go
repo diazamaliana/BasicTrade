@@ -1,11 +1,23 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"time"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type Product struct {
-	gorm.Model
-	UUID     string `gorm:"unique;not null"`
-	Name     string `gorm:"not null"`
+	ID        uint   `gorm:"primaryKey" json:"id"`
+	UUID      string `gorm:"type:varchar(36);unique;not null" json:"uuid"`
+	ProductName     string `gorm:"not null" json:"product_name"`
 	ImageURL string `gorm:"not null"`
-	AdminID  uint   `gorm:"not null"`
+	AdminUUID  uuid.UUID `gorm:"type:varchar(36);not null" json:"admin_uuid"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+}
+
+// BeforeCreate generates a UUID for the admin before creating a record.
+func (product *Product) BeforeCreate(tx *gorm.DB) error {
+	product.UUID = uuid.New().String()
+	return nil
 }

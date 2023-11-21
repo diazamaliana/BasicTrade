@@ -32,65 +32,70 @@ func getSecretKey() string {
 }
 
 func GenerateToken(adminUUID string, email string) (string, error) {
-	claims := jwt.MapClaims{
-		"adminUUID": adminUUID,
-		"email":     email,
-		"exp":       time.Now().Add(time.Hour * 1),
-	}
+    expirationTime := time.Now().Add(time.Hour * 1).Unix() // Set expiration time to 1 hour from now
 
-	parseToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := parseToken.SignedString(secretKey)
-	if err != nil {
-		return "", err
-	}
+    claims := jwt.MapClaims{
+        "adminUUID": adminUUID,
+        "email":     email,
+        "exp":       expirationTime,
+    }
 
-	return signedToken, nil
+    parseToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    signedToken, err := parseToken.SignedString(secretKey)
+    if err != nil {
+        return "", err
+    }
+
+    return signedToken, nil
 }
 
+
 func VerifyToken(c *gin.Context) (interface{}, error) {
-	headerToken := c.Request.Header.Get("Authorization")
-	bearer := strings.HasPrefix(headerToken, "Bearer")
+    headerToken := c.Request.Header.Get("Authorization")
+    fmt.Println("Header Token:", headerToken)
 
-	if !bearer {
-		return nil, errors.New(errorSignInToProceed)
-	}
+    bearer := strings.HasPrefix(headerToken, "Bearer")
+    fmt.Println("Bearer Prefix Exists:", bearer)
 
-	stringToken := strings.Split(headerToken, " ")[1]
+    if !bearer {
+        return nil, errors.New(errorSignInToProceed)
+    }
 
-	token, err := jwt.Parse(stringToken, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New(errorSignInToProceed)
-		}
-		return secretKey, nil
-	})
+    stringToken := strings.Split(headerToken, " ")[1]
+    fmt.Println("String Token:", stringToken)
 
-	if err != nil || !token.Valid {
-		return nil, errors.New(errorSignInToProceed)
-	}
+    token, err := jwt.Parse(stringToken, func(t *jwt.Token) (interface{}, error) {
+        if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+            return nil, errors.New(errorSignInToProceed)
+        }
+        return secretKey, nil
+    })
 
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return nil, errors.New(errorSignInToProceed)
-	}
+    if err != nil || !token.Valid {
+        fmt.Println("Token Validation Error:", err)
+        return nil, errors.New(errorSignInToProceed)
+    }
 
-	expClaim, exists := claims["exp"]
-	if !exists {
-		return nil, errors.New(errorExpireClaimMissing)
-	}
+    claims, ok := token.Claims.(jwt.MapClaims)
+    if !ok {
+        fmt.Println("Failed to extract claims from token.")
+        return nil, errors.New(errorSignInToProceed)
+    }
+    fmt.Println("Claims:", claims)
 
-	expStr, ok := expClaim.(string)
-	if !ok {
-		return nil, errors.New(errorExpireClaimType)
-	}
+    expClaim, exists := claims["exp"]
+    if !exists {
+        return nil, errors.New(errorExpireClaimMissing)
+    }
 
-	expTime, err := time.Parse(time.RFC3339, expStr)
-	if err != nil {
-		return nil, errors.New(errorParsingExpTime)
-	}
+    expTime, ok := expClaim.(float64)
+    if !ok {
+        return nil, errors.New(errorExpireClaimType)
+    }
 
-	if time.Now().After(expTime) {
-		return nil, errors.New(errorTokenExpired)
-	}
+    if time.Now().Unix() > int64(expTime) {
+        return nil, errors.New(errorTokenExpired)
+    }
 
-	return token.Claims.(jwt.MapClaims), nil
+    return token.Claims.(jwt.MapClaims), nil
 }

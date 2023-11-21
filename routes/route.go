@@ -26,7 +26,7 @@ func StartApp() *gin.Engine {
 	{
 		// Middleware
 		// router.Use(middleware.ValidateMiddleware())
-		router.Use(middleware.AuthMiddleware())
+		product.Use(middleware.AuthMiddleware())
 
 		product.GET("", controllers.GetAllProducts)
 		product.POST("", controllers.CreateProduct)

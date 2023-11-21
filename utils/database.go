@@ -5,11 +5,12 @@ import (
 	"log"
 	"os"
 
+	model "basictrade/models"
+
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	model "basictrade/models"
-
 )
 
 var (
@@ -39,6 +40,7 @@ func StartDB() {
 	if err != nil {
 		log.Fatal("error connecting to database: ", err)
 	}
+	
 
 	// AutoMigrate models
 	db.Debug().AutoMigrate(
@@ -47,9 +49,18 @@ func StartDB() {
 		&model.Variant{},
 	)
 
+	db.Callback().Create().Before("gorm:before_create").Register("before_create", BeforeCreateUUID)
+
 	fmt.Println("Connected to the database")
 }
 
 func GetDB() *gorm.DB {
 	return db
+}
+
+// BeforeCreateUUID is a callback to set UUIDs before creating records
+func BeforeCreateUUID(db *gorm.DB) {
+    if _, ok := db.Statement.Schema.FieldsByName["uuid"]; ok {
+        db.Statement.SetColumn("uuid", uuid.New().String())
+    }
 }

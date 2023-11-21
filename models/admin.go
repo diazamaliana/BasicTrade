@@ -18,6 +18,7 @@ type Admin struct {
 	Password  string `gorm:"not null" json:"password"`
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
+    Products []Product `gorm:"foreignKey:AdminUUID;references:UUID"`
 }
 
 // BeforeCreate generates a UUID for the admin before creating a record.
