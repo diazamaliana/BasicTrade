@@ -29,6 +29,14 @@ type ProductCreateRequest struct {
 	Image  *multipart.FileHeader `form:"file"`
 }
 
+// ProductDetailResponse represents the response structure for product details.
+type ProductDetailResponse struct {
+    ID         uint   `json:"id"`
+    UUID       string `json:"uuid"`
+    ProductName string `json:"product_name"`
+    ImageURL    string `json:"image_url"`
+}
+
 // GetAllProducts retrieves all products from the database with pagination and search.
 func GetAllProducts(c *gin.Context) {
 	db := utils.GetDB()
@@ -217,10 +225,87 @@ func UpdateProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"product": existingProduct})
 }
 
+// DeleteProduct deletes a product.
 func DeleteProduct(c *gin.Context) {
-	// Your logic to delete a product
+	// Access claims from the context
+	adminData, exists := c.MustGet("adminData").(jwt5.MapClaims)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	db := utils.GetDB()
+
+	// Extract product UUID from the request URL
+	productUUIDStr := c.Param("productUUID")
+
+	// Convert product UUID string to uuid.UUID
+	productUUID, err := uuid.Parse(productUUIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product UUID format"})
+		return
+	}
+
+	// Extract admin UUID from claims
+	adminUUIDStr := adminData["adminUUID"].(string)
+
+	// Convert admin UUID string to uuid.UUID
+	adminUUID, err := uuid.Parse(adminUUIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid admin UUID format"})
+		return
+	}
+
+	// Check if the product exists
+	var existingProduct models.Product
+	if err := db.Where("uuid = ?", productUUID).First(&existingProduct).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error(), "messages": "Product not found"})
+		return
+	}
+
+	// Check if the admin owns the product
+	if existingProduct.AdminUUID != adminUUID {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error(), "messages": "You don't have permission to delete this product"})
+		return
+	}
+
+	// Delete the product
+	if err := db.Delete(&existingProduct).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "messages": "Failed to delete product",})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Product deleted successfully"})
 }
 
+// GetProductDetail retrieves details of a specific product by UUID.
 func GetProductDetail(c *gin.Context) {
-	// Your logic to get product details
+    db := utils.GetDB()
+
+    // Extract product UUID from the request URL
+    productUUIDStr := c.Param("productUUID")
+
+    // Convert product UUID string to uuid.UUID
+    productUUID, err := uuid.Parse(productUUIDStr)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product UUID format"})
+        return
+    }
+
+    // Fetch product details from the database
+    var product models.Product
+    if err := db.Where("uuid = ?", productUUID).First(&product).Error; err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": err.Error(),"messages": "Product not found"})
+        return
+    }
+
+    // Create a response struct without sensitive information
+    response := ProductDetailResponse{
+        ID:         product.ID,
+        UUID:       productUUIDStr,
+        ProductName: product.ProductName,
+        ImageURL:    product.ImageURL,
+    }
+
+    c.JSON(http.StatusOK, gin.H{"product": response})
 }
