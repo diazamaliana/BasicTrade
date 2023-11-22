@@ -9,15 +9,31 @@ import (
 	"io"
 	"mime/multipart"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 )
 
+const (
+	// MaxFileSize is the maximum allowed file size in bytes (2 MB in this example)
+	MaxFileSize = 2 * 1024 * 1024
+)
+
 func UploadFile(fileHeader *multipart.FileHeader, fileName string) (string, error) {
 	c, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	// Check if the file size exceeds the maximum allowed size
+	if fileHeader.Size > MaxFileSize {
+		return "", errors.New("File size exceeds the maximum allowed size!")
+	}
+
+	// Check if the file is an image based on its content type
+	if !isImageFile(fileHeader.Header.Get("Content-Type")) {
+		return "", errors.New("File is not an image!")
+	}
 
 	// Add Cloudinary product environment credentials.
 	cld, err := cloudinary.NewFromParams(helpers.EnvCloudName(), helpers.EnvCloudAPIKey(), helpers.EnvCloudAPISecret())
@@ -46,7 +62,7 @@ func UploadFile(fileHeader *multipart.FileHeader, fileName string) (string, erro
 
 func convertFile(fileHeader *multipart.FileHeader) (*bytes.Reader, error) {
     if fileHeader == nil {
-        return nil, errors.New("file header is nil")
+        return nil, errors.New("File header is nil.")
     }
 
     file, err := fileHeader.Open()
@@ -69,4 +85,9 @@ func convertFile(fileHeader *multipart.FileHeader) (*bytes.Reader, error) {
 
 func RemoveExtension(filename string) string {
 	return path.Base(filename[:len(filename)-len(path.Ext(filename))])
+}
+
+// isImageFile checks if the given content type corresponds to an image file
+func isImageFile(contentType string) bool {
+	return strings.HasPrefix(contentType, "image/")
 }

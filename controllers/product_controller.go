@@ -35,8 +35,8 @@ func GetAllProducts(c *gin.Context) {
 
 	// Parse query parameters
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
-	name := strings.TrimSpace(c.Query("name"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "5"))
+	productName := strings.TrimSpace(c.Query("productName"))
 
 	// Pagination logic
 	offset := (page - 1) * pageSize
@@ -45,8 +45,8 @@ func GetAllProducts(c *gin.Context) {
 	query := db.Model(&models.Product{})
 
 	// Apply search filter if name is provided
-	if name != "" {
-		query = query.Where("name LIKE ?", "%"+name+"%")
+	if productName!= "" {
+		query = query.Where("product_name LIKE ?", "%"+productName+"%")
 	}
 
 	// Fetch products with pagination
@@ -94,7 +94,7 @@ func CreateProduct(c *gin.Context) {
 	// Upload the file to Cloudinary
 	imageURL, err := utils.UploadFile(createReq.Image, fileName)
 	if err != nil {
-	   c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload file"})
+	   c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "message": "Failed to upload file!"})
 	   return
 	}
 
