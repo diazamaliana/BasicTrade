@@ -124,8 +124,97 @@ func CreateProduct(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"product": newProduct})
 }
 
+// UpdateProduct updates the details of a product.
 func UpdateProduct(c *gin.Context) {
-	// Your logic to update a product
+	// Access claims from the context
+	adminData, exists := c.MustGet("adminData").(jwt5.MapClaims)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	db := utils.GetDB()
+	contentType := utils.GetContentType(c)
+
+	// Extract product UUID from the request URL
+	productUUIDStr := c.Param("productUUID")
+
+	// Convert product UUID string to uuid.UUID
+	productUUID, err := uuid.Parse(productUUIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product UUID format"})
+		return
+	}
+
+	var updateReq ProductCreateRequest
+	if contentType == appJSON {
+		if err := c.ShouldBindJSON(&updateReq); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	} else {
+		if err := c.ShouldBind(&updateReq); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	}
+	if _, err := govalidator.ValidateStruct(updateReq); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Extract admin UUID from claims
+	adminUUIDStr := adminData["adminUUID"].(string)
+
+	// Convert admin UUID string to uuid.UUID
+	adminUUID, err := uuid.Parse(adminUUIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "messages": "Invalid admin UUID format"})
+		return
+	}
+
+	// Check if the product exists
+	var existingProduct models.Product
+	if err := db.Where("uuid = ?", productUUID).First(&existingProduct).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error(), "messages": "Product not found"})
+		return
+	}
+
+	// Check if the admin owns the product
+	if existingProduct.AdminUUID != adminUUID {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error(), "messages": "You don't have permission to update this product."})
+		return
+	}
+
+	// Check if the user uploaded a file
+    if updateReq.Image != nil {
+        // Generate a unique filename using UUID
+        fileName := utils.RemoveExtension(updateReq.Image.Filename)
+
+        // Upload the file to Cloudinary
+        imageURL, err := utils.UploadFile(updateReq.Image, fileName)
+        if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "messages": "Failed to upload file!"})
+            return
+        }
+
+        // Update product details
+        existingProduct.ImageURL = imageURL
+    } else if updateReq.ImageURL != "" {
+        // Update product details with the provided image URL
+        existingProduct.ImageURL = updateReq.ImageURL
+    }
+
+    // Update other product details
+    existingProduct.ProductName = updateReq.ProductName
+
+	// Save the updated product details
+	if err := db.Save(&existingProduct).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "messages": "Failed to update product"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"product": existingProduct})
 }
 
 func DeleteProduct(c *gin.Context) {
