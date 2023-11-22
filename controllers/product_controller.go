@@ -6,6 +6,7 @@ import (
 	"basictrade/models"
 	"basictrade/utils"
 	"fmt"
+	"mime/multipart"
 
 	// "fmt"
 
@@ -24,7 +25,8 @@ import (
 // ProductCreateRequest represents the request body for creating a new product.
 type ProductCreateRequest struct {
 	ProductName     string `form:"product_name" json:"product_name" valid:"required"`
-	ImageURL string `form:"image_url" json:"image_url" valid:"required"`
+	ImageURL string `form:"image_url" json:"image_url"`
+	Image  *multipart.FileHeader `form:"file"`
 }
 
 // GetAllProducts retrieves all products from the database with pagination and search.
@@ -86,6 +88,16 @@ func CreateProduct(c *gin.Context) {
 		return
 	}
 
+	// Generate a unique filename using UUID
+	fileName := utils.RemoveExtension(createReq.Image.Filename)
+
+	// Upload the file to Cloudinary
+	imageURL, err := utils.UploadFile(createReq.Image, fileName)
+	if err != nil {
+	   c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload file"})
+	   return
+	}
+
 	// Extract admin UUID from claims
 	adminUUIDStr := adminData["adminUUID"].(string)
 
@@ -100,7 +112,7 @@ func CreateProduct(c *gin.Context) {
 	// Use adminUUID when creating a new product
 	newProduct := models.Product{
 		ProductName: createReq.ProductName,
-		ImageURL:    createReq.ImageURL,
+		ImageURL:    imageURL,
 		AdminUUID:   adminUUID,  // Use the extracted admin UUID
 	}
 
