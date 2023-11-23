@@ -88,6 +88,29 @@ func CreateVariant(c *gin.Context) {
 		return
 	}
 
+     // Access claims from the context
+     adminData, exists := c.MustGet("adminData").(jwt5.MapClaims)
+     if !exists {
+         c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+         return
+     }
+ 
+     // Extract admin UUID from claims
+     adminUUIDStr := adminData["adminUUID"].(string)
+ 
+     // Convert admin UUID string to uuid.UUID
+     adminUUID, err := uuid.Parse(adminUUIDStr)
+     if err != nil {
+         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid admin UUID format"})
+         return
+     }
+ 
+     // Check if the admin owns the product
+     if existingProduct.AdminUUID != adminUUID {
+         c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to create a variant for this product."})
+         return
+     }
+
     // Create a new variant
     newVariant := models.Variant{
         VariantName: createReq.VariantName,
