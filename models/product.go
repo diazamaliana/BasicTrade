@@ -14,6 +14,7 @@ type Product struct {
 	AdminUUID  uuid.UUID `gorm:"type:varchar(36);not null" json:"admin_uuid"`
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	Variants  []Variant `gorm:"foreignKey:ProductUUID;references:UUID"`
 }
 
 // BeforeCreate generates a UUID for the admin before creating a record.
