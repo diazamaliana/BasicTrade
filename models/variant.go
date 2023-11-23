@@ -12,7 +12,7 @@ type Variant struct {
 	UUID      string `gorm:"type:varchar(36);unique;not null" json:"uuid"`
 	VariantName string `gorm:"not null" json:"variant_name"`
 	Quantity    uint    `gorm:"not null" json:"quantity"`
-	ProductUUID  uuid.UUID `gorm:"type:varchar(36);not null" json:"admin_uuid"`
+	ProductUUID  uuid.UUID `gorm:"type:varchar(36);not null" json:"product_uuid"`
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 }
