@@ -6,6 +6,7 @@ import (
 	"basictrade/models"
 	"basictrade/utils"
 	"fmt"
+	"math"
 	"mime/multipart"
 
 	// "fmt"
@@ -50,12 +51,19 @@ func GetAllProducts(c *gin.Context) {
 	offset := (page - 1) * pageSize
 
 	// Build the query
-	query := db.Model(&models.Product{})
+	query := db.Model(&models.Product{}).Preload("Variants")
 
 	// Apply search filter if name is provided
 	if productName!= "" {
 		query = query.Where("product_name LIKE ?", "%"+productName+"%")
 	}
+
+	// Fetch total count of products
+    var totalItems int64
+    if err := query.Count(&totalItems).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch total items"})
+        return
+    }
 
 	// Fetch products with pagination
 	var products []models.Product
@@ -64,7 +72,10 @@ func GetAllProducts(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"products": products})
+	// Calculate total pages
+    totalPages := int(math.Ceil(float64(totalItems) / float64(pageSize)))
+
+	c.JSON(http.StatusOK, gin.H{"products": products, "totalItems": totalItems, "totalPages": totalPages})
 }
 
 // CreateProduct creates a new product.
