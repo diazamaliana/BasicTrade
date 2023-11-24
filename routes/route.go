@@ -10,10 +10,6 @@ import (
 func StartApp() *gin.Engine {
 	router := gin.Default()
 
-	// // Middleware
-	// router.Use(middleware.ValidateMiddleware())
-	// router.Use(middleware.AuthMiddleware())
-
 	// Auth routes
 	auth := router.Group("/auth")
 	{
@@ -25,7 +21,6 @@ func StartApp() *gin.Engine {
 	product := router.Group("/products")
 	{
 		// Middleware
-		// router.Use(middleware.ValidateMiddleware())
 		product.Use(middleware.AuthMiddleware())
 
 		product.GET("", controllers.GetAllProducts)

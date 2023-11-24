@@ -5,13 +5,9 @@ package controllers
 import (
 	"basictrade/models"
 	"basictrade/utils"
-	"fmt"
 	"math"
 	"mime/multipart"
 
-	// "fmt"
-
-	// "log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -20,7 +16,6 @@ import (
 	"github.com/gin-gonic/gin"
 	jwt5 "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	// "github.com/google/uuid"
 )
 
 // ProductCreateRequest represents the request body for creating a new product.
@@ -126,7 +121,6 @@ func CreateProduct(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid admin UUID format"})
 		return
 	}
-	fmt.Println("Admin UUID:", adminUUID)  // Add this line for debugging
 
 	// Use adminUUID when creating a new product
 	newProduct := models.Product{
