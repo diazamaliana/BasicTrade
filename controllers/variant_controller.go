@@ -210,10 +210,116 @@ func UpdateVariant(c *gin.Context) {
     c.JSON(http.StatusOK, gin.H{"variant": existingVariant})
 }
 
+// DeleteVariant deletes a variant.
 func DeleteVariant(c *gin.Context) {
-	// Your logic to delete a variant
+    db := utils.GetDB()
+
+    // Extract variant UUID from the request URL
+    variantUUIDStr := c.Param("variantUUID")
+
+    // Convert variant UUID string to uuid.UUID
+    variantUUID, err := uuid.Parse(variantUUIDStr)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid variant UUID format"})
+        return
+    }
+
+    // Check if the variant exists
+    var existingVariant models.Variant
+    if err := db.Where("uuid = ?", variantUUID).First(&existingVariant).Error; err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": err.Error(), "messages": "Variant not found"})
+        return
+    }
+
+    // Check if the admin owns the product associated with the variant
+    var existingProduct models.Product
+    if err := db.Where("uuid = ?", existingVariant.ProductUUID).First(&existingProduct).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "messages": "Failed to fetch product"})
+        return
+    }
+
+    // Access claims from the context
+    adminData, exists := c.MustGet("adminData").(jwt5.MapClaims)
+    if !exists {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+        return
+    }
+
+    // Extract admin UUID from claims
+    adminUUIDStr := adminData["adminUUID"].(string)
+
+     // Convert admin UUID string to uuid.UUID
+    adminUUID, err := uuid.Parse(adminUUIDStr)
+     if err != nil {
+         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid admin UUID format"})
+         return
+    }
+
+    // Check if the admin owns the product
+     if existingProduct.AdminUUID != adminUUID {
+        c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to delete this variant."})
+        return
+    }
+
+    // Delete the variant
+    if err := db.Delete(&existingVariant).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "messages": "Failed to delete variant"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"message": "Variant deleted successfully"})
 }
 
+// GetVariantDetail retrieves the details of a variant.
 func GetVariantDetail(c *gin.Context) {
-	// Your logic to get variant details
+    db := utils.GetDB()
+
+    // Extract variant UUID from the request URL
+    variantUUIDStr := c.Param("variantUUID")
+
+    // Convert variant UUID string to uuid.UUID
+    variantUUID, err := uuid.Parse(variantUUIDStr)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid variant UUID format"})
+        return
+    }
+
+    // Check if the variant exists
+    var existingVariant models.Variant
+    if err := db.Where("uuid = ?", variantUUID).First(&existingVariant).Error; err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": err.Error(), "messages": "Variant not found"})
+        return
+    }
+
+    // Check if the admin owns the product associated with the variant
+    var existingProduct models.Product
+    if err := db.Where("uuid = ?", existingVariant.ProductUUID).First(&existingProduct).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "messages": "Failed to fetch product"})
+        return
+    }
+
+    // Access claims from the context
+    adminData, exists := c.MustGet("adminData").(jwt5.MapClaims)
+    if !exists {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+        return
+    }
+
+    // Extract admin UUID from claims
+    adminUUIDStr := adminData["adminUUID"].(string)
+
+    // Convert admin UUID string to uuid.UUID
+    adminUUID, err := uuid.Parse(adminUUIDStr)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid admin UUID format"})
+        return
+    }
+
+    // Check if the admin owns the product
+    if existingProduct.AdminUUID != adminUUID {
+        c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to view this variant."})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"variant": existingVariant})
 }
