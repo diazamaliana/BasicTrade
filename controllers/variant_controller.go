@@ -5,6 +5,7 @@ package controllers
 import (
 	"basictrade/models"
 	"basictrade/utils"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -42,6 +43,13 @@ func GetAllVariants(c *gin.Context) {
 		query = query.Where("variant_name LIKE ?", "%"+variantName+"%")
 	}
 
+    // Fetch total count of products
+    var totalItems int64
+    if err := query.Count(&totalItems).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch total items"})
+        return 
+    }
+
 	// Fetch products with pagination
     var variants []models.Variant
     if err := query.Offset(offset).Limit(pageSize).Find(&variants).Error; err != nil {
@@ -49,7 +57,10 @@ func GetAllVariants(c *gin.Context) {
 		return
 	}
 
-    c.JSON(http.StatusOK, gin.H{"variants": variants})
+    // Calculate total pages
+    totalPages := int(math.Ceil(float64(totalItems) / float64(pageSize)))
+
+    c.JSON(http.StatusOK, gin.H{"variants": variants, "totalItems": totalItems, "totalPages": totalPages})
 }
 
 // CreateVariant creates a new variant for a specific product.
