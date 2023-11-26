@@ -25,15 +25,15 @@ func StartApp() *gin.Engine {
 
 		product.GET("", controllers.GetAllProducts)
 		product.POST("", controllers.CreateProduct)
-		product.PUT("/:productUUID", controllers.UpdateProduct)
-		product.DELETE("/:productUUID", controllers.DeleteProduct)
+		product.PUT("/:productUUID", middleware.ValidateProductAuthorization(),controllers.UpdateProduct)
+		product.DELETE("/:productUUID",middleware.ValidateProductAuthorization(), controllers.DeleteProduct)
 		product.GET("/:productUUID", controllers.GetProductDetail)
 
 		// Variant routes
 		product.GET("/variants", controllers.GetAllVariants)
 		product.POST("/variants", controllers.CreateVariant)
-		product.PUT("/variants/:variantUUID", controllers.UpdateVariant)
-		product.DELETE("/variants/:variantUUID", controllers.DeleteVariant)
+		product.PUT("/variants/:variantUUID", middleware.ValidateVariantAuthorization(),controllers.UpdateVariant)
+		product.DELETE("/variants/:variantUUID", middleware.ValidateVariantAuthorization(),controllers.DeleteVariant)
 		product.GET("/variants/:variantUUID", controllers.GetVariantDetail)
 	}
 
