@@ -109,9 +109,10 @@ func ValidateVariantAuthorization() gin.HandlerFunc {
             return
         }
 
+        // Fetch the associated product using ProductUUID
         var existingProduct models.Product
-        if err := db.Model(&existingVariant).Association("Product").Find(&existingProduct); err != nil {
-            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get associated product"})
+        if err := db.Where("uuid = ?", existingVariant.ProductUUID).First(&existingProduct).Error; err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "messages": "Failed to get associated product"})
             c.Abort()
             return
         }
