@@ -274,6 +274,12 @@ func DeleteProduct(c *gin.Context) {
 		return
 	}
 
+	// Check if the product has associated variants
+	if len(existingProduct.Variants) > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot delete product with associated variants", "messages": "Please delete the variants first"})
+		return
+	}
+
 	// Delete the product
 	if err := db.Delete(&existingProduct).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "messages": "Failed to delete product",})
