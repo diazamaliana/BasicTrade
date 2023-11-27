@@ -188,7 +188,7 @@ func UpdateProduct(c *gin.Context) {
 
 	// Check if the product exists
 	var existingProduct models.Product
-	if err := db.Where("uuid = ?", productUUID).First(&existingProduct).Error; err != nil {
+	if err := db.Where("uuid = ?", productUUID).Preload("Variants").First(&existingProduct).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error(), "messages": "Product not found"})
 		return
 	}
